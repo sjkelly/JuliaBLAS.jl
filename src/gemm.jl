@@ -56,17 +56,17 @@ function addmul!(C, A, B, blk::Block{T1,T2,T3,T4,G}=Block(A, B, C, false)) where
     mb, _mc = cld(m, blk.mc), UInt(m % blk.mc)
     nb, _nc = cld(n, blk.nc), UInt(n % blk.nc)
     kb, _kc = cld(k, blk.kc), UInt(k % blk.kc)
-    for j in UnitRange{UInt}(one(UInt),nb) # Loop 5
-        nc = (j!=nb || iszero(_nc)) ? blk.nc : _nc
-        for l in UnitRange{UInt}(one(UInt),kb) # Loop 4
-            kc = (l!=kb || iszero(_kc)) ? blk.kc : _kc
+    for j in UnitRange{UInt}(zero(UInt),nb-0x01) # Loop 5
+        nc = ((j+0x01)!=nb || iszero(_nc)) ? blk.nc : _nc
+        for l in UnitRange{UInt}(zero(UInt),kb-0x01) # Loop 4
+            kc = ((l+0x01)!=kb || iszero(_kc)) ? blk.kc : _kc
             #_β = l==1 ? β : 1.0
-            offsetB = blk.kc*(l-0x01)*blk.inc1B + blk.nc*(j-0x01)*blk.inc2B
+            offsetB = blk.kc*l*blk.inc1B + blk.nc*j*blk.inc2B
             pack_B!(blk, B, kc, nc, offsetB)
-            for i in UnitRange{UInt}(one(UInt),mb) # Loop 3
-                mc = (i!=mb || iszero(_mc)) ? blk.mc : _mc
-                offsetA = blk.mc*(i-one(UInt))*blk.inc1A + blk.kc*(l-one(UInt))*blk.inc2A
-                offsetC = blk.mc*(i-one(UInt))*blk.inc1C + blk.nc*(j-one(UInt))*blk.inc2C
+            for i in UnitRange{UInt}(zero(UInt),mb-0x01) # Loop 3
+                mc = ((i+0x01)!=mb || iszero(_mc)) ? blk.mc : _mc
+                offsetA = blk.mc*i*blk.inc1A + blk.kc*l*blk.inc2A
+                offsetC = blk.mc*i*blk.inc1C + blk.nc*j*blk.inc2C
                 pack_A!(blk, A, mc, kc, offsetA)
                 macro_ker!(blk, C, mc, nc, kc, offsetC)
             end # Loop 3
@@ -186,11 +186,18 @@ end
             VT = Vec{4, T}
             if loadC
                 pC = pointer(blk.C)
-                @nexprs 4 i -> begin
-                    ab_i_1 = vload(VT, pC + (offsetC+(i-0x01)*blk.inc2C  )siz)
-                    ab_i_2 = vload(VT, pC + (offsetC+(i-0x01)*blk.inc2C+0x04)siz)
-                    ab_i_3 = vload(VT, pC + (offsetC+(i-0x01)*blk.inc2C+0x08)siz)
-                end
+                ab_1_1 = vload(VT, pC + (offsetC)siz)
+                ab_1_2 = vload(VT, pC + (offsetC+0x04)siz)
+                ab_1_3 = vload(VT, pC + (offsetC+0x08)siz)
+                ab_2_1 = vload(VT, pC + (offsetC+blk.inc2C  )siz)
+                ab_2_2 = vload(VT, pC + (offsetC+blk.inc2C+0x04)siz)
+                ab_2_3 = vload(VT, pC + (offsetC+blk.inc2C+0x08)siz)
+                ab_3_1 = vload(VT, pC + (offsetC+(0x02)*blk.inc2C  )siz)
+                ab_3_2 = vload(VT, pC + (offsetC+(0x02)*blk.inc2C+0x04)siz)
+                ab_3_3 = vload(VT, pC + (offsetC+(0x02)*blk.inc2C+0x08)siz)
+                ab_4_1 = vload(VT, pC + (offsetC+(0x03)*blk.inc2C  )siz)
+                ab_4_2 = vload(VT, pC + (offsetC+(0x03)*blk.inc2C+0x04)siz)
+                ab_4_3 = vload(VT, pC + (offsetC+(0x03)*blk.inc2C+0x08)siz)
             else
                 @nexprs 4 i -> begin
                     ab_i_1 = zero(VT)
