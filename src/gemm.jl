@@ -228,8 +228,8 @@ end
                 offsetB += blk.nr
             end
             if loadC
-                for j in 1:blk.nr, i in 1:blk.mr
-                    blk.C[offsetC+(i-1)*blk.inc1C+(j-1)*blk.inc2C+1] += blk.AB[i + (j-1)*blk.mr]
+                for j in 0:(blk.nr-1), i in 0:(blk.mr-1)
+                    blk.C[offsetC+i*blk.inc1C+j*blk.inc2C+1] += blk.AB[i + j*blk.mr + 1]
                 end
             end
         end
@@ -240,8 +240,8 @@ end
 @inline function _axpy!(Y, α, X, m::Int, n::Int,
                         offsetY::Int, offsetX::Int, inc1X::Int, inc2X::Int)
     inc1Y, inc2Y = stride(Y, 1), stride(Y, 2)
-    @inbounds for j in 1:n, i in 1:m
-        Y[offsetY+(i-1)*inc1Y+(j-1)*inc2Y+1] += α*X[offsetX+(i-1)*inc1X+(j-1)*inc2X+1]
+    @inbounds for j in 0:(n-1), i in 0:(m-1)
+        Y[offsetY+i*inc1Y+j*inc2Y+1] += α*X[offsetX+i*inc1X+j*inc2X+1]
     end
     return nothing
 end
