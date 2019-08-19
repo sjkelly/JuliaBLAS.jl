@@ -53,14 +53,14 @@ function addmul!(C, A, B, blk::Block{T1,T2,T3,T4,G}=Block(A, B, C, false)) where
     nb, _nc = cld(n, blk.nc), n % blk.nc
     kb, _kc = cld(k, blk.kc), k % blk.kc
     for j in 1:nb # Loop 5
-        nc = (j!=nb || _nc==0) ? blk.nc : _nc
+        nc = (j!=nb || iszero(_nc)) ? blk.nc : _nc
         for l in 1:kb # Loop 4
-            kc = (l!=kb || _kc==0) ? blk.kc : _kc
+            kc = (l!=kb || iszero(_kc)) ? blk.kc : _kc
             #_β = l==1 ? β : 1.0
             offsetB = blk.kc*(l-1)*blk.inc1B + blk.nc*(j-1)*blk.inc2B
             pack_B!(blk, B, kc, nc, offsetB)
             for i in 1:mb # Loop 3
-                mc = (i!=mb || _mc==0) ? blk.mc : _mc
+                mc = (i!=mb || iszero(_mc)) ? blk.mc : _mc
                 offsetA = blk.mc*(i-1)*blk.inc1A + blk.kc*(l-1)*blk.inc2A
                 offsetC = blk.mc*(i-1)*blk.inc1C + blk.nc*(j-1)*blk.inc2C
                 pack_A!(blk, A, mc, kc, offsetA)
@@ -148,17 +148,17 @@ end
     mp, _mr = cld(mc, blk.mr), mc % blk.mr
     np, _nr = cld(nc, blk.nr), nc % blk.nr
     for j in 1:np
-        nr = (j!=np || _nr==0) ? blk.nr : _nr
+        nr = (j!=np || iszero(_nr)) ? blk.nr : _nr
         for i in 1:mp
-            mr = (i!=mp || _mr==0) ? blk.mr : _mr
+            mr = (i!=mp || iszero(_mr)) ? blk.mr : _mr
             offsetA = (i-1)*kc*blk.mr
             offsetB = (j-1)*kc*blk.nr
             if mr == blk.mr && nr==blk.nr
                 micro_ker!(blk, kc, offsetA, offsetB, offsetC+(i-1)*blk.mr*blk.inc1C + (j-1)*blk.nr*blk.inc2C, Val(true))
             else
                 micro_ker!(blk, kc, offsetA, offsetB, 0, Val(false))
-                _axpy!(C, 1, blk.AB, mr, nr, offsetC+(i-1)*blk.mr*blk.inc1C + (j-1)*blk.nr*blk.inc2C,
-                       0, 1, blk.mr)
+                _axpy!(C, 1, blk.AB, mr, nr, offsetC+(i-1)*blk.mr*blk.inc1C + (j-1)*blk.nr*blk.inc2C+1,
+                       1, 1, blk.mr)
             end
         end
     end
@@ -237,11 +237,11 @@ end
     end
 end
 
-@inline function _axpy!(Y, α, X, m::Int, n::Int,
-                        offsetY::Int, offsetX::Int, inc1X::Int, inc2X::Int)
-    inc1Y, inc2Y = stride(Y, 1), stride(Y, 2)
-    @inbounds for j in 0:(n-1), i in 0:(m-1)
-        Y[offsetY+i*inc1Y+j*inc2Y+1] += α*X[offsetX+i*inc1X+j*inc2X+1]
+@inline function _axpy!(Y, α, X, m::IT, n::IT,
+                        offsetY::IT, offsetX::IT, inc1X::IT, inc2X::IT) where {IT}
+    inc1Y, inc2Y = IT(stride(Y, 1)), IT(stride(Y, 2))
+    @inbounds for j in zero(IT):(n-one(IT)), i in zero(IT):(m-one(IT))
+        Y[offsetY+i*inc1Y+j*inc2Y] += α*X[offsetX+i*inc1X+j*inc2X]
     end
     return nothing
 end
