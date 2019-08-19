@@ -184,8 +184,8 @@ end
                 pC = pointer(blk.C)
                 @nexprs 4 i -> begin
                     ab_i_1 = vload(VT, pC + (offsetC+(i-1)*blk.inc2C  )siz)
-                    ab_i_2 = vload(VT, pC + (offsetC+(i-1)*blk.inc2C+4)siz)
-                    ab_i_3 = vload(VT, pC + (offsetC+(i-1)*blk.inc2C+8)siz)
+                    ab_i_2 = vload(VT, pC + (offsetC+(i-1)*blk.inc2C+0x04)siz)
+                    ab_i_3 = vload(VT, pC + (offsetC+(i-1)*blk.inc2C+0x08)siz)
                 end
             else
                 @nexprs 4 i -> begin
@@ -194,12 +194,12 @@ end
                     ab_i_3 = zero(VT)
                 end
             end
-            for k in 1:kc
-                a1 = vload(VT, pA + (offsetA+blk.mr*(k-1))siz)
-                a2 = vload(VT, pA + (offsetA+blk.mr*(k-1)+4)siz)
-                a3 = vload(VT, pA + (offsetA+blk.mr*(k-1)+8)siz)
+            for k in 0:(kc-1)
+                a1 = vload(VT, pA + (offsetA+blk.mr*k)siz)
+                a2 = vload(VT, pA + (offsetA+blk.mr*k+0x04)siz)
+                a3 = vload(VT, pA + (offsetA+blk.mr*k+0x08)siz)
                 @nexprs 4 i -> begin
-                    b_i = VT(blk.Bc[offsetB+(k-1)blk.nr+i])
+                    b_i = VT(blk.Bc[offsetB+k*blk.nr+i])
                     ab_i_1 = muladd(a1, b_i, ab_i_1)
                     ab_i_2 = muladd(a2, b_i, ab_i_2)
                     ab_i_3 = muladd(a3, b_i, ab_i_3)
@@ -208,14 +208,14 @@ end
             if loadC
                 @nexprs 4 i -> begin
                     vstore(ab_i_1, pC + (offsetC+(i-1)*blk.inc2C)siz)
-                    vstore(ab_i_2, pC + (offsetC+(i-1)*blk.inc2C+4)siz)
-                    vstore(ab_i_3, pC + (offsetC+(i-1)*blk.inc2C+8)siz)
+                    vstore(ab_i_2, pC + (offsetC+(i-1)*blk.inc2C+0x04)siz)
+                    vstore(ab_i_3, pC + (offsetC+(i-1)*blk.inc2C+0x08)siz)
                 end
             else
                 @nexprs 4 i -> begin
                     vstore(ab_i_1, pAB + (i-1)blk.mr*siz)
-                    vstore(ab_i_2, pAB + ((i-1)blk.mr+4)*siz)
-                    vstore(ab_i_3, pAB + ((i-1)blk.mr+8)*siz)
+                    vstore(ab_i_2, pAB + ((i-1)blk.mr+0x04)*siz)
+                    vstore(ab_i_3, pAB + ((i-1)blk.mr+0x08)*siz)
                 end
             end
         else
