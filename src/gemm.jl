@@ -6,11 +6,11 @@ struct Block{T1,T2,T3,T4,G}
     Bc::T2
     AB::T3
     C::T4
-    mc::UInt
-    kc::UInt
-    nc::UInt
-    mr::UInt
-    nr::UInt
+    mc::UInt8
+    kc::UInt8
+    nc::UInt16
+    mr::UInt8
+    nr::UInt8
     inc1A::UInt
     inc2A::UInt
     inc1B::UInt
@@ -27,9 +27,9 @@ function Block(A::X, B::W, C::Z, generic) where {X, W, Z}
     global Ac, Bc, AB
     mr=UInt(12); nr=UInt(4)
     m, n = size(C)
-    mc = UInt(72)
-    kc = UInt(192)
-    nc = UInt(4080)
+    mc = UInt8(72)
+    kc = UInt8(192)
+    nc = UInt16(4080)
     T = promote_type(eltype(X), eltype(W), eltype(Z))
     siz = sizeof(T)
     _Ac = unsafe_wrap(Array, Ptr{T}(pointer(Ac)), length(Ac)÷siz)
@@ -54,9 +54,9 @@ function addmul!(C, A, B, blk::Block{T1,T2,T3,T4,G}=Block(A, B, C, false)) where
     _n = UInt(size(C)[2])
     @assert m == _m && n == _n
     mb, _mc = cld(m, blk.mc), UInt(m % blk.mc)
-    nb, _nc = cld(n, blk.nc), UInt(n % blk.nc)
+    nb, _nc = UInt8(cld(n, blk.nc)), UInt8(n % blk.nc)
     kb, _kc = cld(k, blk.kc), UInt(k % blk.kc)
-    for j in UnitRange{UInt}(zero(UInt),nb-0x01) # Loop 5
+    @inbounds for j in UnitRange{UInt8}(zero(UInt8),nb-0x01) # Loop 5
         nc = ((j+0x01)!=nb || iszero(_nc)) ? blk.nc : _nc
         for l in UnitRange{UInt}(zero(UInt),kb-0x01) # Loop 4
             kc = ((l+0x01)!=kb || iszero(_kc)) ? blk.kc : _kc
@@ -91,7 +91,7 @@ function pack_A!(blk::Block{T1,T2,T3,T4,G}, A, mc::Integer, kc::Integer,
                  offsetA::Integer) where {T1,T2,T3,T4,G}
     mp, _mr = divrem(mc, blk.mr)
     offsetAc = 0x00
-    for i in one(UInt8):UInt8(mp)
+    @inbounds for i in one(UInt8):UInt8(mp)
         pack_MRxK!(blk, A, kc, offsetA, offsetAc)
         offsetAc += kc*blk.mr
         offsetA  += blk.mr*blk.inc1A
@@ -127,7 +127,7 @@ function pack_B!(blk::Block{T1,T2,T3,T4,G}, B,
                  kc::Integer, nc::Integer, offsetB::Integer) where {T1,T2,T3,T4,G}
     np, _nr = divrem(nc, blk.nr)
     offsetBc = 0
-    for j in UnitRange{UInt}(one(UInt),np)
+    @inbounds for j in UnitRange{UInt}(one(UInt),np)
         pack_KxNR!(blk, B, kc, offsetB, offsetBc)
         offsetBc += kc*blk.nr
         offsetB  += blk.nr*blk.inc2B
@@ -137,7 +137,7 @@ function pack_B!(blk::Block{T1,T2,T3,T4,G}, B,
             for j in UnitRange{UInt}(one(UInt), _nr)
                 blk.Bc[offsetBc+j] = B[offsetB + (j-one(UInt))*blk.inc2B + 0x01]
             end
-            for j in UnitRange{UInt}(_nr+one(UInt), blk.nr)
+            for j in UnitRange{UInt8}(_nr+one(UInt8), blk.nr)
                 blk.Bc[offsetBc+j] = zero(eltype(B))
             end
             offsetBc += blk.nr
@@ -151,7 +151,7 @@ end
                             offsetC::Integer) where {T1,T2,T3,T4,G}
     mp, _mr = cld(mc, blk.mr), UInt(mc % blk.mr)
     np, _nr = cld(nc, blk.nr), UInt(nc % blk.nr)
-    for j in UnitRange{UInt}(one(UInt),np)
+    @inbounds for j in UnitRange{UInt}(one(UInt),np)
         nr = (j!=np || iszero(_nr)) ? blk.nr : _nr
         for i in UnitRange{UInt}(one(UInt),mp)
             mr = (i!=mp || iszero(_mr)) ? blk.mr : _mr
