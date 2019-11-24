@@ -13,8 +13,10 @@ function bench(nn=30)
         A,B,C = (zeros(siz,siz) for i in 1:3)
         bj = @benchmarkable addmul!($C,$A,$B) samples=20 time_tolerance=0.1 seconds=0.8
         jbtimes[i] = run(bj) |> minimum |> time
+        sleep(0.001)
         bo = @benchmarkable mul!($C,$A,$B) samples=20 time_tolerance=0.1 seconds=0.8
         obtimes[i] = run(bo) |> minimum |> time
+        sleep(0.001)
     end
 
 
