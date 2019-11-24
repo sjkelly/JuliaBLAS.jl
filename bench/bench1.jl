@@ -1,4 +1,4 @@
-using BenchmarkTools, LinearAlgebra, Plots
+using BenchmarkTools, Dates, LinearAlgebra, Plots
 gr()
 import JuliaBLAS: addmul!, Block
 
@@ -24,4 +24,5 @@ function bench(nn=30)
     plot!(mnks, oflops, lab="OpenBLAS", ylabel="GFLOPS", xlabel="M=N=K", legend=:bottomright, dpi=400, ylims=(0,60), yticks=0:5:50)
 end
 plt = bench()
-savefig(plt, "bench1.png")
+timestamp = Dates.format(now(), "yyyy-mm-ddTHH_MM")
+savefig(plt, "bench-$timestamp.png")
